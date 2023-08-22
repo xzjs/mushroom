@@ -3,25 +3,18 @@
     <div class="top-bar">
       <div class="top-title">蘑 菇 智 能 一 体 化 采 摘 系 统</div>
       <div class="top-logo"></div>
-      <div class="top-time">{{ FormatTime(nowTime) }}</div>
+      <div class="top-time">{{ FormatTime(data.nowTime) }}</div>
     </div>
     <div class="mid-content">
       <div class="content">
         <div class="content-top-item sp">
           <div class="item-title">实时行为监测</div>
           <div class="item">
-            <div id="echarts1" style="float: left; width: 100%; height: 100%" />
-          </div>
-          <div class="item">
-            <div id="echarts2" style="float: left; width: 100%; height: 100%" />
+            <div id="echarts1" style="width: 100%; height: 100%"></div>
           </div>
         </div>
         <div class="content-top-item" style="">
-          <img
-            src="@/assets/img/show1.jpeg"
-            style="width: 100%; height: 100%"
-            alt=""
-          />
+          <img :src="camera" style="width: 100%; height: 100%" alt="" />
         </div>
         <div
           class="content-top-item"
@@ -34,11 +27,7 @@
       </div>
       <div class="content">
         <div class="content-top-item">
-          <img
-            src="@/assets/img/show1.jpeg"
-            style="width: 100%; height: 100%"
-            alt=""
-          />
+          <img src="/left.jpeg" style="width: 100%; height: 100%" alt="" />
         </div>
         <div
           class="content-top-item jqr_content"
@@ -55,7 +44,7 @@
             <div>操作</div>
           </div>
           <div class="JTableBody noScrollBar" id="scrollContentTj">
-            <div class="list-item" v-for="(item, index) in jqrArr" :key="index">
+            <div class="list-item" v-for="(item, index) in data.jqrArr" :key="index">
               <div>{{ index + 1 }}</div>
               <div>{{ item.jqrbh }}</div>
               <div>{{ item.cqbh }}</div>
@@ -66,893 +55,710 @@
           </div>
         </div>
         <div class="content-top-item">
-          <img :src="camera" style="width: 100%; height: 100%" alt="" />
+          <img src="/right.jpeg" style="width: 100%; height: 100%" alt="" />
         </div>
       </div>
     </div>
   </div>
 </template>
 
-<script>
+<script setup>
+import axios from "axios";
 import * as echarts from "echarts";
 import $ from "jquery";
-export default {
-  name: "home",
-  components: {},
-  data() {
-    return {
-      camera: "/api/camera",
-      timer: undefined,
-      nowTime: new Date(),
-      latedata: "2020-1-9",
-      tbTimerTj: null,
-      jqrArr: [
-        {
-          jqrbh: "001",
-          cqbh: "北3区",
-          mgbh: "1001",
-          gcbh: "02",
-        },
-        {
-          jqrbh: "002",
-          cqbh: "北3区",
-          mgbh: "1001",
-          gcbh: "02",
-        },
-        {
-          jqrbh: "003",
-          cqbh: "北3区",
-          mgbh: "23423",
-          gcbh: "02",
-        },
-        {
-          jqrbh: "001",
-          cqbh: "北3区",
-          mgbh: "3355",
-          gcbh: "02",
-        },
-        {
-          jqrbh: "001",
-          cqbh: "北3区",
-          mgbh: "2243",
-          gcbh: "02",
-        },
-        {
-          jqrbh: "001",
-          cqbh: "北3区",
-          mgbh: "2221",
-          gcbh: "02",
-        },
-        {
-          jqrbh: "001",
-          cqbh: "北3区",
-          mgbh: "6453",
-          gcbh: "02",
-        },
-        {
-          jqrbh: "001",
-          cqbh: "北3区",
-          mgbh: "4657",
-          gcbh: "02",
-        },
-        {
-          jqrbh: "001",
-          cqbh: "北3区",
-          mgbh: "3452",
-          gcbh: "02",
-        },
-        {
-          jqrbh: "001",
-          cqbh: "北3区",
-          mgbh: "4453",
-          gcbh: "02",
-        },
-        {
-          jqrbh: "001",
-          cqbh: "北3区",
-          mgbh: "4657",
-          gcbh: "02",
-        },
-        {
-          jqrbh: "001",
-          cqbh: "北3区",
-          mgbh: "3452",
-          gcbh: "02",
-        },
-        {
-          jqrbh: "001",
-          cqbh: "北3区",
-          mgbh: "4453",
-          gcbh: "02",
-        },
-      ],
-    };
-  },
-  created() {
-    // 显示时间，在渲染页面之前一直调用该函数，对this.time进行赋值
-    this.timer = setInterval(() => {
-      this.nowTime = new Date().toLocaleString();
-    });
-  },
-  // 销毁定时器
-  beforeDestroy() {
-    if (this.timer) {
-      clearInterval(this.timer);
-    }
-  },
+import { reactive, onMounted, computed } from "vue";
 
-  mounted() {
-    this.initDataEcharts1();
-    this.initDataEcharts2();
-    this.initDataEchartsMj();
-
-    this.jsScrollTj();
-    setInterval(() => {
-      this.getCamera();
-    }, 100);
-    // this.getCamera();
-  },
-  methods: {
-    getCamera() {
-      this.camera = "/api/camera?" + Date.now();
+const data = reactive({
+  statistics: { keys: [], values: [] },
+  camera: "/api/camera",
+  timer: undefined,
+  nowTime: new Date(),
+  latedata: "2020-1-9",
+  tbTimerTj: null,
+  jqrArr: [
+    {
+      jqrbh: "001",
+      cqbh: "北3区",
+      mgbh: "1001",
+      gcbh: "02",
     },
-    FormatTime() {
-      //返回显示的日期时间格式
-      var date = new Date();
-      var year = this.formatTime(date.getFullYear());
-      var month = this.formatTime(date.getMonth() + 1);
-      var day = this.formatTime(date.getDate());
-      var hour = this.formatTime(date.getHours());
-      var minute = this.formatTime(date.getMinutes());
-      var second = this.formatTime(date.getSeconds());
-
-      return `${year}-${month}-${day}   ${hour} : ${minute} : ${second}`;
+    {
+      jqrbh: "002",
+      cqbh: "北3区",
+      mgbh: "1001",
+      gcbh: "02",
     },
-    formatTime(n) {
-      //判断是否需要加0
-      if (n < 10) {
-        return "0" + n;
-      } else {
-        return n;
-      }
+    {
+      jqrbh: "003",
+      cqbh: "北3区",
+      mgbh: "23423",
+      gcbh: "02",
     },
+    {
+      jqrbh: "001",
+      cqbh: "北3区",
+      mgbh: "3355",
+      gcbh: "02",
+    },
+    {
+      jqrbh: "001",
+      cqbh: "北3区",
+      mgbh: "2243",
+      gcbh: "02",
+    },
+    {
+      jqrbh: "001",
+      cqbh: "北3区",
+      mgbh: "2221",
+      gcbh: "02",
+    },
+    {
+      jqrbh: "001",
+      cqbh: "北3区",
+      mgbh: "6453",
+      gcbh: "02",
+    },
+    {
+      jqrbh: "001",
+      cqbh: "北3区",
+      mgbh: "4657",
+      gcbh: "02",
+    },
+    {
+      jqrbh: "001",
+      cqbh: "北3区",
+      mgbh: "3452",
+      gcbh: "02",
+    },
+    {
+      jqrbh: "001",
+      cqbh: "北3区",
+      mgbh: "4453",
+      gcbh: "02",
+    },
+    {
+      jqrbh: "001",
+      cqbh: "北3区",
+      mgbh: "4657",
+      gcbh: "02",
+    },
+    {
+      jqrbh: "001",
+      cqbh: "北3区",
+      mgbh: "3452",
+      gcbh: "02",
+    },
+    {
+      jqrbh: "001",
+      cqbh: "北3区",
+      mgbh: "4453",
+      gcbh: "02",
+    },
+  ],
+});
 
-    //竖向柱状排序图
-    initDataEcharts1() {
-      // 基于准备好的dom，初始化echarts实例
-      const myChart = echarts.init(document.getElementById("echarts1"));
-      //加载动画，可不管
-      // myChart.showLoading({
-      // 	text: 'loading',
-      // 	color: '#c23531',
-      // 	textColor: '#000',
-      // 	maskColor: 'rgba(255, 255, 255, 0.8)',
-      // 	zlevel: 0,
-      // 	// 字体大小。从 `v4.8.0` 开始支持。
-      // 	fontSize: 12,
-      // 	// 是否显示旋转动画(spinner)。从 `v4.8.0` 开始支持。
-      // 	showSpinner: true,
-      // 	// 旋转动画(spinner)的半径。从 `v4.8.0` 开始支持。
-      // 	spinnerRadius: 10,
-      // 	// 旋转动画(spinner)的线宽。从 `v4.8.0` 开始支持。
-      // 	lineWidth: 5,
-      // 	// 字体粗细。从 `v5.0.1` 开始支持。
-      // 	fontWeight: 'normal',
-      // 	// 字体风格。从 `v5.0.1` 开始支持。
-      // 	fontStyle: 'normal',
-      // 	// 字体系列。从 `v5.0.1` 开始支持。
-      // 	fontFamily: 'sans-serif'
+onMounted(() => {
+  data.timer = setInterval(() => {
+    data.nowTime = new Date().toLocaleString();
+    getStatistics();
+  }, 1000);
+  initDataEchartsMj();
 
-      // });
-      // setTimeout(function() {
+  jsScrollTj();
+  // setInterval(() => {
+  //   this.getCamera();
+  // }, 100);
+  // this.getCamera();
+});
 
-      //echarts统计表主配置
-      myChart.setOption({
-        xAxis: {
-          max: "dataMax",
-          splitLine: {
-            show: false,
-          },
+function getStatistics() {
+  axios.get("/api/statistics").then((res) => {
+    data.statistics = res.data;
+    initDataEcharts1();
+  });
+}
+function getCamera() {
+  data.camera = "/api/camera?" + Date.now();
+}
+function FormatTime() {
+  //返回显示的日期时间格式
+  var date = new Date();
+  return date.toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" });
+}
+
+//竖向柱状排序图
+function initDataEcharts1() {
+  // 基于准备好的dom，初始化echarts实例
+  const myChart = echarts.init(document.getElementById("echarts1"));
+  //加载动画，可不管
+  // myChart.showLoading({
+  // 	text: 'loading',
+  // 	color: '#c23531',
+  // 	textColor: '#000',
+  // 	maskColor: 'rgba(255, 255, 255, 0.8)',
+  // 	zlevel: 0,
+  // 	// 字体大小。从 `v4.8.0` 开始支持。
+  // 	fontSize: 12,
+  // 	// 是否显示旋转动画(spinner)。从 `v4.8.0` 开始支持。
+  // 	showSpinner: true,
+  // 	// 旋转动画(spinner)的半径。从 `v4.8.0` 开始支持。
+  // 	spinnerRadius: 10,
+  // 	// 旋转动画(spinner)的线宽。从 `v4.8.0` 开始支持。
+  // 	lineWidth: 5,
+  // 	// 字体粗细。从 `v5.0.1` 开始支持。
+  // 	fontWeight: 'normal',
+  // 	// 字体风格。从 `v5.0.1` 开始支持。
+  // 	fontStyle: 'normal',
+  // 	// 字体系列。从 `v5.0.1` 开始支持。
+  // 	fontFamily: 'sans-serif'
+
+  // });
+  // setTimeout(function() {
+
+  //echarts统计表主配置
+  myChart.setOption({
+    xAxis: {
+      max: "dataMax",
+      splitLine: {
+        show: false,
+      },
+    },
+    title: {
+      text: "采摘行为（次数）",
+      textStyle: {
+        align: "center",
+        color: "#fff",
+        fontSize: 12,
+      },
+      top: "5%",
+      left: "2%",
+    },
+    yAxis: {
+      type: "category",
+      show: true,
+      splitLine: {
+        show: false,
+      },
+      axisTick: {
+        show: false, //刻度线
+      },
+      axisLine: {
+        show: false, //隐藏y轴
+      },
+      axisLabel: {
+        show: true, //隐藏刻度值
+      },
+
+      data: data.statistics.keys,
+      inverse: true,
+      animationDuration: 300,
+      animationDurationUpdate: 300,
+      //设置坐标轴字体颜色和宽度
+      axisLine: {
+        lineStyle: {
+          color: "#fff",
+          width: 0,
         },
-        title: {
-          text: "采摘行为（次数）",
-          textStyle: {
-            align: "center",
-            color: "#fff",
-            fontSize: 12,
-          },
-          top: "5%",
-          left: "2%",
-        },
-        yAxis: {
-          type: "category",
+      },
+      max: 6, // only the largest 3 bars will be displayed
+    },
+    grid: {
+      //与绝对定位相似，top，left，right，bottom 设定是根据上级盒子宽高来计算
+
+      top: "20%",
+
+      left: "10%",
+
+      right: "10%",
+
+      bottom: "-5%",
+    },
+    series: [
+      {
+        realtimeSort: true,
+        name: "",
+        type: "bar",
+        barWidth: 8,
+        data: data.statistics.values,
+        label: {
           show: true,
-          splitLine: {
-            show: false,
-          },
-          axisTick: {
-            show: false, //刻度线
-          },
-          axisLine: {
-            show: false, //隐藏y轴
-          },
-          axisLabel: {
-            show: true, //隐藏刻度值
-          },
-
-          data: [1, 2, 3, 4, 5, 6],
-          inverse: true,
-          animationDuration: 300,
-          animationDurationUpdate: 300,
-          //设置坐标轴字体颜色和宽度
-          axisLine: {
-            lineStyle: {
-              color: "#fff",
-              width: 0,
-            },
-          },
-          max: 6, // only the largest 3 bars will be displayed
+          position: "right",
+          valueAnimation: true,
         },
-        grid: {
-          //与绝对定位相似，top，left，right，bottom 设定是根据上级盒子宽高来计算
+        //显示数值
+        itemStyle: {
+          normal: {
+            //这里设置柱形图圆角 [左上角，右上角，右下角，左下角]
+            barBorderRadius: [20, 20, 20, 20],
 
-          top: "20%",
-
-          left: "10%",
-
-          right: "10%",
-
-          bottom: "-5%",
-        },
-        series: [
-          {
-            realtimeSort: true,
-            name: "",
-            type: "bar",
-            barWidth: 8,
-            data: [11, 22, 33, 44, 55, 66],
             label: {
-              show: true,
-              position: "right",
-              valueAnimation: true,
-            },
-            //显示数值
-            itemStyle: {
-              normal: {
-                //这里设置柱形图圆角 [左上角，右上角，右下角，左下角]
-                barBorderRadius: [20, 20, 20, 20],
-
-                label: {
-                  show: true, //开启显示
-                  position: "right", //在上方显示
-                  textStyle: {
-                    //数值样式
-                    color: "#fff",
-                    fontSize: "12px",
-                  },
-                },
-                color: function (params) {
-                  let colors = [
-                    "rgba(1,216,252,0.9)",
-                    "rgba(5,119,211,0.9)",
-                    "transparent",
-                  ];
-                  return new echarts.graphic.LinearGradient(1, 0, 0, 0, [
-                    {
-                      offset: 0,
-                      color: colors[0],
-                    },
-                    {
-                      offset: 1,
-                      color: colors[1],
-                    },
-                    {
-                      offset: 1,
-                      color: colors[2],
-                    },
-                  ]);
-                },
-              },
-            },
-          },
-        ],
-        legend: {
-          show: true,
-        },
-        animationDuration: 0,
-        animationDurationUpdate: 3000,
-        animationEasing: "linear",
-        animationEasingUpdate: "linear",
-      });
-      //关闭加载动画
-      // myChart.hideLoading();
-      // }, 1000);
-
-      window.onresize = myChart.resize; //自适应浏览器窗口的大小
-    },
-
-    //竖向柱状排序图
-    initDataEcharts2() {
-      // 基于准备好的dom，初始化echarts实例
-      const myChart = echarts.init(document.getElementById("echarts2"));
-      //加载动画，可不管
-      // myChart.showLoading({
-      // 	text: 'loading',
-      // 	color: '#c23531',
-      // 	textColor: '#000',
-      // 	maskColor: 'rgba(255, 255, 255, 0.8)',
-      // 	zlevel: 0,
-      // 	// 字体大小。从 `v4.8.0` 开始支持。
-      // 	fontSize: 12,
-      // 	// 是否显示旋转动画(spinner)。从 `v4.8.0` 开始支持。
-      // 	showSpinner: true,
-      // 	// 旋转动画(spinner)的半径。从 `v4.8.0` 开始支持。
-      // 	spinnerRadius: 10,
-      // 	// 旋转动画(spinner)的线宽。从 `v4.8.0` 开始支持。
-      // 	lineWidth: 5,
-      // 	// 字体粗细。从 `v5.0.1` 开始支持。
-      // 	fontWeight: 'normal',
-      // 	// 字体风格。从 `v5.0.1` 开始支持。
-      // 	fontStyle: 'normal',
-      // 	// 字体系列。从 `v5.0.1` 开始支持。
-      // 	fontFamily: 'sans-serif'
-
-      // });
-      // setTimeout(function() {
-
-      //echarts统计表主配置
-      myChart.setOption({
-        xAxis: {
-          max: "dataMax",
-          splitLine: {
-            show: false,
-          },
-        },
-        title: {
-          text: "切根行为（次数）",
-          textStyle: {
-            align: "center",
-            color: "#fff",
-            fontSize: 12,
-          },
-          top: "5%",
-          left: "2%",
-        },
-        yAxis: {
-          type: "category",
-          show: true,
-          splitLine: {
-            show: false,
-          },
-          axisTick: {
-            show: false, //刻度线
-          },
-          axisLine: {
-            show: false, //隐藏y轴
-          },
-          axisLabel: {
-            show: true, //隐藏刻度值
-          },
-          data: [1, 2, 3, 4, 5, 6],
-          inverse: true,
-          animationDuration: 300,
-          animationDurationUpdate: 300,
-          //设置坐标轴字体颜色和宽度
-          axisLine: {
-            lineStyle: {
-              color: "#fff",
-              width: 0,
-            },
-          },
-          max: 6, // only the largest 3 bars will be displayed
-        },
-        grid: {
-          //与绝对定位相似，top，left，right，bottom 设定是根据上级盒子宽高来计算
-
-          top: "20%",
-
-          left: "10%",
-
-          right: "10%",
-
-          bottom: "-5%",
-        },
-        series: [
-          {
-            realtimeSort: true,
-            name: "",
-            type: "bar",
-            barWidth: 8,
-            data: [11, 22, 33, 44, 55, 66],
-            label: {
-              show: true,
-              position: "right",
-              valueAnimation: true,
-            },
-            //显示数值
-            itemStyle: {
-              normal: {
-                //这里设置柱形图圆角 [左上角，右上角，右下角，左下角]
-                barBorderRadius: [20, 20, 20, 20],
-
-                label: {
-                  show: true, //开启显示
-                  position: "right", //在上方显示
-                  textStyle: {
-                    //数值样式
-                    color: "#fff",
-                    fontSize: "12px",
-                  },
-                },
-                color: function (params) {
-                  let colors = [
-                    "rgba(1,216,252,0.9)",
-                    "rgba(5,119,211,0.9)",
-                    "transparent",
-                  ];
-                  return new echarts.graphic.LinearGradient(1, 0, 0, 0, [
-                    {
-                      offset: 0,
-                      color: colors[0],
-                    },
-                    {
-                      offset: 1,
-                      color: colors[1],
-                    },
-                    {
-                      offset: 1,
-                      color: colors[2],
-                    },
-                  ]);
-                },
-              },
-            },
-          },
-        ],
-        legend: {
-          show: true,
-        },
-        animationDuration: 0,
-        animationDurationUpdate: 3000,
-        animationEasing: "linear",
-        animationEasingUpdate: "linear",
-      });
-      //关闭加载动画
-      // myChart.hideLoading();
-      // }, 1000);
-
-      window.onresize = myChart.resize; //自适应浏览器窗口的大小
-    },
-
-    //折现面积图
-    initDataEchartsMj() {
-      // 基于准备好的dom，初始化echarts实例
-      const myChart = echarts.init(document.getElementById("echarts3"));
-      //加载动画，可不管
-      // myChart.showLoading({
-      // 	text: 'loading',
-      // 	color: '#c23531',
-      // 	textColor: '#000',
-      // 	maskColor: 'rgba(255, 255, 255, 0.8)',
-      // 	zlevel: 0,
-      // 	// 字体大小。从 `v4.8.0` 开始支持。
-      // 	fontSize: 12,
-      // 	// 是否显示旋转动画(spinner)。从 `v4.8.0` 开始支持。
-      // 	showSpinner: true,
-      // 	// 旋转动画(spinner)的半径。从 `v4.8.0` 开始支持。
-      // 	spinnerRadius: 10,
-      // 	// 旋转动画(spinner)的线宽。从 `v4.8.0` 开始支持。
-      // 	lineWidth: 5,
-      // 	// 字体粗细。从 `v5.0.1` 开始支持。
-      // 	fontWeight: 'normal',
-      // 	// 字体风格。从 `v5.0.1` 开始支持。
-      // 	fontStyle: 'normal',
-      // 	// 字体系列。从 `v5.0.1` 开始支持。
-      // 	fontFamily: 'sans-serif'
-
-      // });
-      // setTimeout(function() {
-
-      //echarts统计表主配置
-      myChart.setOption({
-        backgroundColor: "rgba(0,0,0,0)",
-        title: {
-          text: "",
-          textStyle: {
-            align: "center",
-            color: "#fff",
-            fontSize: 20,
-          },
-          top: "5%",
-          left: "center",
-        },
-        legend: {
-          show: true,
-          orient: "horizontal", //布局方式：  horizontal/vertical
-          x: "center", // 水平安放位置，默认为全图居中，可选： 'center' ¦ 'left' ¦ 'right'  或 {number}（x坐标，单位px）
-          y: "bottom", //垂直安放位置，默认为全图顶端，可选： 'top' ¦ 'bottom' ¦ 'center' 或 {number}（y坐标，单位px）
-          textStyle: {
-            fontSize: 10,
-            color: "#70C5FF",
-          },
-          backgroundColor: "rgba(0,0,0,0)",
-          borderColor: "#ccc", // 图例边框颜色
-          borderWidth: 0, // 图例边框线宽，单位px，默认为0（无边框）
-          padding: 10, // 图例内边距，单位px，默认各方向内边距为5，或数组形式分别设定上右下左边距，同css
-          itemGap: 40, // 各个item之间的间隔，单位px，默认为10，横向布局时为水平间隔，纵向布局时为纵向间隔
-          itemWidth: 30, // 图例图形宽度
-          itemHeight: 14, // 图例图形高度
-        },
-
-        tooltip: {
-          trigger: "axis",
-          axisPointer: {
-            lineStyle: {
-              color: {
-                type: "linear",
-                x: 0,
-                y: 0,
-                x2: 0,
-                y2: 1,
-                colorStops: [
-                  {
-                    offset: 0,
-                    color: "#70C5FF",
-                  },
-                  {
-                    offset: 0.5,
-                    color: "#70C5FF",
-                  },
-                  {
-                    offset: 1,
-                    color: "#70C5FF",
-                  },
-                ],
-                global: false,
-              },
-            },
-          },
-        },
-        grid: {
-          top: "15%",
-          left: "9%",
-          right: "0%",
-          bottom: "25%",
-          // containLabel: true
-        },
-        xAxis: [
-          {
-            type: "category",
-            axisLine: {
-              show: true,
-            },
-            splitArea: {
-              // show: true,
-              color: "#f00",
-              lineStyle: {
-                background: "#17283E",
-              },
-            },
-            axisLabel: {
-              color: "#70C5FF",
-              interval: 0,
-              rotate: 35,
-              fontSize: 8,
-            },
-            splitLine: {
-              show: true,
-              lineStyle: {
-                color: "#050001;",
-              },
-            },
-            boundaryGap: false,
-            data: [
-              "2023-01-01",
-              "2023-01-02",
-              "2023-01-03",
-              "2023-01-04",
-              "2023-01-05",
-              "2023-01-06",
-              "2023-01-07",
-              "2023-01-08",
-              "2023-01-09",
-              "2023-01-10",
-            ],
-          },
-        ],
-
-        yAxis: [
-          {
-            type: "value",
-            axisLine: {
-              show: false,
-            },
-            min: 0,
-            // max: 140,
-            splitNumber: 7,
-
-            splitLine: {
-              show: true,
-              lineStyle: {
-                color: "#141D3B",
-              },
-            },
-
-            axisLabel: {
-              show: true,
-              margin: 5,
+              show: true, //开启显示
+              position: "right", //在上方显示
               textStyle: {
+                //数值样式
+                color: "#fff",
+                fontSize: "12px",
+              },
+            },
+            color: function (params) {
+              let colors = [
+                "rgba(1,216,252,0.9)",
+                "rgba(5,119,211,0.9)",
+                "transparent",
+              ];
+              return new echarts.graphic.LinearGradient(1, 0, 0, 0, [
+                {
+                  offset: 0,
+                  color: colors[0],
+                },
+                {
+                  offset: 1,
+                  color: colors[1],
+                },
+                {
+                  offset: 1,
+                  color: colors[2],
+                },
+              ]);
+            },
+          },
+        },
+      },
+    ],
+    legend: {
+      show: true,
+    },
+    animationDuration: 0,
+    animationDurationUpdate: 3000,
+    animationEasing: "linear",
+    animationEasingUpdate: "linear",
+  });
+  //关闭加载动画
+  // myChart.hideLoading();
+  // }, 1000);
+
+  window.onresize = myChart.resize; //自适应浏览器窗口的大小
+}
+//折现面积图
+function initDataEchartsMj() {
+  // 基于准备好的dom，初始化echarts实例
+  const myChart = echarts.init(document.getElementById("echarts3"));
+  //加载动画，可不管
+  // myChart.showLoading({
+  // 	text: 'loading',
+  // 	color: '#c23531',
+  // 	textColor: '#000',
+  // 	maskColor: 'rgba(255, 255, 255, 0.8)',
+  // 	zlevel: 0,
+  // 	// 字体大小。从 `v4.8.0` 开始支持。
+  // 	fontSize: 12,
+  // 	// 是否显示旋转动画(spinner)。从 `v4.8.0` 开始支持。
+  // 	showSpinner: true,
+  // 	// 旋转动画(spinner)的半径。从 `v4.8.0` 开始支持。
+  // 	spinnerRadius: 10,
+  // 	// 旋转动画(spinner)的线宽。从 `v4.8.0` 开始支持。
+  // 	lineWidth: 5,
+  // 	// 字体粗细。从 `v5.0.1` 开始支持。
+  // 	fontWeight: 'normal',
+  // 	// 字体风格。从 `v5.0.1` 开始支持。
+  // 	fontStyle: 'normal',
+  // 	// 字体系列。从 `v5.0.1` 开始支持。
+  // 	fontFamily: 'sans-serif'
+
+  // });
+  // setTimeout(function() {
+
+  //echarts统计表主配置
+  myChart.setOption({
+    backgroundColor: "rgba(0,0,0,0)",
+    title: {
+      text: "",
+      textStyle: {
+        align: "center",
+        color: "#fff",
+        fontSize: 20,
+      },
+      top: "5%",
+      left: "center",
+    },
+    legend: {
+      show: true,
+      orient: "horizontal", //布局方式：  horizontal/vertical
+      x: "center", // 水平安放位置，默认为全图居中，可选： 'center' ¦ 'left' ¦ 'right'  或 {number}（x坐标，单位px）
+      y: "bottom", //垂直安放位置，默认为全图顶端，可选： 'top' ¦ 'bottom' ¦ 'center' 或 {number}（y坐标，单位px）
+      textStyle: {
+        fontSize: 10,
+        color: "#70C5FF",
+      },
+      backgroundColor: "rgba(0,0,0,0)",
+      borderColor: "#ccc", // 图例边框颜色
+      borderWidth: 0, // 图例边框线宽，单位px，默认为0（无边框）
+      padding: 10, // 图例内边距，单位px，默认各方向内边距为5，或数组形式分别设定上右下左边距，同css
+      itemGap: 40, // 各个item之间的间隔，单位px，默认为10，横向布局时为水平间隔，纵向布局时为纵向间隔
+      itemWidth: 30, // 图例图形宽度
+      itemHeight: 14, // 图例图形高度
+    },
+
+    tooltip: {
+      trigger: "axis",
+      axisPointer: {
+        lineStyle: {
+          color: {
+            type: "linear",
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              {
+                offset: 0,
                 color: "#70C5FF",
               },
-              fontSize: 10,
-            },
-            axisTick: {
-              show: false,
-            },
-            //设置坐标轴字体颜色和宽度
-            axisLine: {
-              show: true,
-              lineStyle: {
-                color: "#fff",
-                width: 0,
+              {
+                offset: 0.5,
+                color: "#70C5FF",
               },
-            },
-          },
-        ],
-        series: [
-          {
-            name: "当天产量",
-            type: "line",
-            smooth: true, //是否平滑
-            showAllSymbol: false,
-            // symbol: 'image://./static/images/guang-circle.png',
-            symbol: "circle",
-            symbolSize: 6,
-            lineStyle: {
-              normal: {
-                color: "#6c50f3",
-                shadowColor: "rgba(0, 0, 0, .3)",
-                // shadowBlur: 0,
-                // shadowOffsetY: 5,
-                // shadowOffsetX: 5,
+              {
+                offset: 1,
+                color: "#70C5FF",
               },
-            },
-            label: {
-              show: false,
-              position: "top",
-              textStyle: {
-                color: "#6c50f3",
-              },
-            },
-            itemStyle: {
-              color: "#6c50f3",
-              borderColor: "#fff",
-              borderWidth: 1,
-              shadowColor: "rgba(0, 0, 0, .3)",
-              shadowBlur: 0,
-              shadowOffsetY: 2,
-              shadowOffsetX: 2,
-            },
-            tooltip: {
-              show: true,
-              formatter: function (params) {
-                // do some thing
-                return "名称：" + params.name;
-              },
-            },
-            areaStyle: {
-              normal: {
-                color: new echarts.graphic.LinearGradient(
-                  0,
-                  0,
-                  0,
-                  1,
-                  [
-                    {
-                      offset: 0,
-                      color: "rgba(108,80,243,0.3)",
-                    },
-                    {
-                      offset: 1,
-                      color: "rgba(108,80,243,0)",
-                    },
-                  ],
-                  false
-                ),
-                shadowColor: "rgba(108,80,243, 0.9)",
-                shadowBlur: 20,
-              },
-            },
-            data: [
-              202.84, 205.97, 232.79, 281.55, 298.35, 214.02, 232.79, 281.55,
-              298.35, 214.02,
             ],
+            global: false,
           },
-          {
-            name: "上月产量（环比）",
-            type: "line",
-            smooth: true, //是否平滑
-            showAllSymbol: true,
-            // symbol: 'image://./static/images/guang-circle.png',
-            symbol: "circle",
-            symbolSize: 6,
-            lineStyle: {
-              normal: {
-                color: "#E6A23C",
-                // shadowColor: "rgba(0, 0, 0, .3)",
-                // shadowBlur: 0,
-                // shadowOffsetY: 5,
-                // shadowOffsetX: 5,
-              },
-            },
-            label: {
-              show: false,
-              position: "top",
-              textStyle: {
-                color: "#E6A23C",
-              },
-            },
-            itemStyle: {
-              color: "#E6A23C",
-              borderColor: "#fff",
-              borderWidth: 1,
-              shadowColor: "rgba(0, 0, 0, .3)",
-              shadowBlur: 0,
-              shadowOffsetY: 2,
-              shadowOffsetX: 2,
-            },
-            tooltip: {
-              show: true,
-              formatter: function (params) {
-                // do some thing
-                return "名称：" + params.name;
-              },
-            },
-            areaStyle: {
-              normal: {
-                color: new echarts.graphic.LinearGradient(
-                  0,
-                  0,
-                  0,
-                  1,
-                  [
-                    {
-                      offset: 0,
-                      color: "rgba(230,162,60,0.3)",
-                    },
-                    {
-                      offset: 1,
-                      color: "rgba(230,162,60,0)",
-                    },
-                  ],
-                  false
-                ),
-                shadowColor: "rgba(230,162,60, 0.9)",
-                shadowBlur: 20,
-              },
-            },
-            data: [
-              500.84, 505.97, 532.79, 521.55, 528.35, 514.02, 532.79, 521.55,
-              528.35, 514.02,
-            ],
-          },
-          {
-            name: "去年产量(同比)",
-            type: "line",
-            smooth: true, //是否平滑
-            showAllSymbol: true,
-            // symbol: 'image://./static/images/guang-circle.png',
-            symbol: "circle",
-            symbolSize: 6,
-            lineStyle: {
-              normal: {
-                color: "#00ca95",
-                shadowColor: "rgba(0, 0, 0, .3)",
-                // shadowBlur: 0,
-                // shadowOffsetY: 5,
-                // shadowOffsetX: 5,
-              },
-            },
-            label: {
-              show: false,
-              position: "top",
-              textStyle: {
-                color: "#00ca95",
-              },
-            },
-
-            itemStyle: {
-              color: "#00ca95",
-              borderColor: "#fff",
-              borderWidth: 1,
-              shadowColor: "rgba(0, 0, 0, .3)",
-              shadowBlur: 0,
-              shadowOffsetY: 2,
-              shadowOffsetX: 2,
-            },
-            tooltip: {
-              show: true,
-            },
-            areaStyle: {
-              normal: {
-                color: new echarts.graphic.LinearGradient(
-                  0,
-                  0,
-                  0,
-                  1,
-                  [
-                    {
-                      offset: 0,
-                      color: "rgba(0,202,149,0.3)",
-                    },
-                    {
-                      offset: 1,
-                      color: "rgba(0,202,149,0)",
-                    },
-                  ],
-                  false
-                ),
-                shadowColor: "rgba(0,202,149, 0.9)",
-                shadowBlur: 20,
-              },
-            },
-            data: [
-              781.55, 798.35, 714.02, 779.55, 789.57, 756.1, 714.02, 779.55,
-              789.57, 756.14,
-            ],
-          },
-        ],
-      });
-      //关闭加载动画
-      // myChart.hideLoading();
-      // }, 1000);
-
-      window.onresize = myChart.resize; //自适应浏览器窗口的大小
+        },
+      },
     },
+    grid: {
+      top: "15%",
+      left: "9%",
+      right: "0%",
+      bottom: "25%",
+      // containLabel: true
+    },
+    xAxis: [
+      {
+        type: "category",
+        axisLine: {
+          show: true,
+        },
+        splitArea: {
+          // show: true,
+          color: "#f00",
+          lineStyle: {
+            background: "#17283E",
+          },
+        },
+        axisLabel: {
+          color: "#70C5FF",
+          interval: 0,
+          rotate: 35,
+          fontSize: 8,
+        },
+        splitLine: {
+          show: true,
+          lineStyle: {
+            color: "#050001;",
+          },
+        },
+        boundaryGap: false,
+        data: [
+          "2023-01-01",
+          "2023-01-02",
+          "2023-01-03",
+          "2023-01-04",
+          "2023-01-05",
+          "2023-01-06",
+          "2023-01-07",
+          "2023-01-08",
+          "2023-01-09",
+          "2023-01-10",
+        ],
+      },
+    ],
 
-    // 滚动配置
-    jsScrollTj(rowHei = 36, speed = 2000, delay = 1000) {
-      //直接利用js实现
-      var isStopSw = false;
-      var contSw = document.getElementById("scrollContentTj");
-      contSw.scrollTop = 0;
-      contSw.onmouseover = function () {
-        isStopSw = true;
-      };
-      contSw.onmouseout = function () {
-        isStopSw = false;
-      };
+    yAxis: [
+      {
+        type: "value",
+        axisLine: {
+          show: false,
+        },
+        min: 0,
+        // max: 140,
+        splitNumber: 7,
 
-      function startScrollSw() {
-        if (isStopSw) {
-          console.log("暂停中");
-        } else {
-          console.log(
-            contSw.scrollTop,
-            contSw.scrollHeight - contSw.offsetHeight
-          );
-          if (
-            contSw.scrollTop + 10 >=
-            contSw.scrollHeight - contSw.offsetHeight
-          ) {
-            contSw.scrollTop = 0;
-          } else {
-            // cont.scrollTop = parseInt(cont.scrollTop) + rowHei;
-            let buSw = parseInt(contSw.scrollTop) + rowHei + "px";
-            console.log("buSw", buSw);
-            // document.getElementById('scrollContentTj').animate({scrollTop: buSw}, 200);
-            $("#scrollContentTj").animate({ scrollTop: buSw }, 200);
-          }
-        }
+        splitLine: {
+          show: true,
+          lineStyle: {
+            color: "#141D3B",
+          },
+        },
+
+        axisLabel: {
+          show: true,
+          margin: 5,
+          textStyle: {
+            color: "#70C5FF",
+          },
+          fontSize: 10,
+        },
+        axisTick: {
+          show: false,
+        },
+        //设置坐标轴字体颜色和宽度
+        axisLine: {
+          show: true,
+          lineStyle: {
+            color: "#fff",
+            width: 0,
+          },
+        },
+      },
+    ],
+    series: [
+      {
+        name: "当天产量",
+        type: "line",
+        smooth: true, //是否平滑
+        showAllSymbol: false,
+        // symbol: 'image://./static/images/guang-circle.png',
+        symbol: "circle",
+        symbolSize: 6,
+        lineStyle: {
+          normal: {
+            color: "#6c50f3",
+            shadowColor: "rgba(0, 0, 0, .3)",
+            // shadowBlur: 0,
+            // shadowOffsetY: 5,
+            // shadowOffsetX: 5,
+          },
+        },
+        label: {
+          show: false,
+          position: "top",
+          textStyle: {
+            color: "#6c50f3",
+          },
+        },
+        itemStyle: {
+          color: "#6c50f3",
+          borderColor: "#fff",
+          borderWidth: 1,
+          shadowColor: "rgba(0, 0, 0, .3)",
+          shadowBlur: 0,
+          shadowOffsetY: 2,
+          shadowOffsetX: 2,
+        },
+        tooltip: {
+          show: true,
+          formatter: function (params) {
+            // do some thing
+            return "名称：" + params.name;
+          },
+        },
+        areaStyle: {
+          normal: {
+            color: new echarts.graphic.LinearGradient(
+              0,
+              0,
+              0,
+              1,
+              [
+                {
+                  offset: 0,
+                  color: "rgba(108,80,243,0.3)",
+                },
+                {
+                  offset: 1,
+                  color: "rgba(108,80,243,0)",
+                },
+              ],
+              false
+            ),
+            shadowColor: "rgba(108,80,243, 0.9)",
+            shadowBlur: 20,
+          },
+        },
+        data: [
+          202.84, 205.97, 232.79, 281.55, 298.35, 214.02, 232.79, 281.55,
+          298.35, 214.02,
+        ],
+      },
+      {
+        name: "上月产量（环比）",
+        type: "line",
+        smooth: true, //是否平滑
+        showAllSymbol: true,
+        // symbol: 'image://./static/images/guang-circle.png',
+        symbol: "circle",
+        symbolSize: 6,
+        lineStyle: {
+          normal: {
+            color: "#E6A23C",
+            // shadowColor: "rgba(0, 0, 0, .3)",
+            // shadowBlur: 0,
+            // shadowOffsetY: 5,
+            // shadowOffsetX: 5,
+          },
+        },
+        label: {
+          show: false,
+          position: "top",
+          textStyle: {
+            color: "#E6A23C",
+          },
+        },
+        itemStyle: {
+          color: "#E6A23C",
+          borderColor: "#fff",
+          borderWidth: 1,
+          shadowColor: "rgba(0, 0, 0, .3)",
+          shadowBlur: 0,
+          shadowOffsetY: 2,
+          shadowOffsetX: 2,
+        },
+        tooltip: {
+          show: true,
+          formatter: function (params) {
+            // do some thing
+            return "名称：" + params.name;
+          },
+        },
+        areaStyle: {
+          normal: {
+            color: new echarts.graphic.LinearGradient(
+              0,
+              0,
+              0,
+              1,
+              [
+                {
+                  offset: 0,
+                  color: "rgba(230,162,60,0.3)",
+                },
+                {
+                  offset: 1,
+                  color: "rgba(230,162,60,0)",
+                },
+              ],
+              false
+            ),
+            shadowColor: "rgba(230,162,60, 0.9)",
+            shadowBlur: 20,
+          },
+        },
+        data: [
+          500.84, 505.97, 532.79, 521.55, 528.35, 514.02, 532.79, 521.55,
+          528.35, 514.02,
+        ],
+      },
+      {
+        name: "去年产量(同比)",
+        type: "line",
+        smooth: true, //是否平滑
+        showAllSymbol: true,
+        // symbol: 'image://./static/images/guang-circle.png',
+        symbol: "circle",
+        symbolSize: 6,
+        lineStyle: {
+          normal: {
+            color: "#00ca95",
+            shadowColor: "rgba(0, 0, 0, .3)",
+            // shadowBlur: 0,
+            // shadowOffsetY: 5,
+            // shadowOffsetX: 5,
+          },
+        },
+        label: {
+          show: false,
+          position: "top",
+          textStyle: {
+            color: "#00ca95",
+          },
+        },
+
+        itemStyle: {
+          color: "#00ca95",
+          borderColor: "#fff",
+          borderWidth: 1,
+          shadowColor: "rgba(0, 0, 0, .3)",
+          shadowBlur: 0,
+          shadowOffsetY: 2,
+          shadowOffsetX: 2,
+        },
+        tooltip: {
+          show: true,
+        },
+        areaStyle: {
+          normal: {
+            color: new echarts.graphic.LinearGradient(
+              0,
+              0,
+              0,
+              1,
+              [
+                {
+                  offset: 0,
+                  color: "rgba(0,202,149,0.3)",
+                },
+                {
+                  offset: 1,
+                  color: "rgba(0,202,149,0)",
+                },
+              ],
+              false
+            ),
+            shadowColor: "rgba(0,202,149, 0.9)",
+            shadowBlur: 20,
+          },
+        },
+        data: [
+          781.55, 798.35, 714.02, 779.55, 789.57, 756.1, 714.02, 779.55, 789.57,
+          756.14,
+        ],
+      },
+    ],
+  });
+  //关闭加载动画
+  // myChart.hideLoading();
+  // }, 1000);
+
+  window.onresize = myChart.resize; //自适应浏览器窗口的大小
+}
+// 滚动配置
+function jsScrollTj(rowHei = 36, speed = 2000, delay = 1000) {
+  //直接利用js实现
+  var isStopSw = false;
+  var contSw = document.getElementById("scrollContentTj");
+  contSw.scrollTop = 0;
+  contSw.onmouseover = function () {
+    isStopSw = true;
+  };
+  contSw.onmouseout = function () {
+    isStopSw = false;
+  };
+
+  function startScrollSw() {
+    if (isStopSw) {
+      console.log("暂停中");
+    } else {
+      console.log(contSw.scrollTop, contSw.scrollHeight - contSw.offsetHeight);
+      if (contSw.scrollTop + 10 >= contSw.scrollHeight - contSw.offsetHeight) {
+        contSw.scrollTop = 0;
+      } else {
+        // cont.scrollTop = parseInt(cont.scrollTop) + rowHei;
+        let buSw = parseInt(contSw.scrollTop) + rowHei + "px";
+        console.log("buSw", buSw);
+        // document.getElementById('scrollContentTj').animate({scrollTop: buSw}, 200);
+        $("#scrollContentTj").animate({ scrollTop: buSw }, 200);
       }
+    }
+  }
 
-      setTimeout((fn) => {
-        clearInterval(this.tbTimerTj);
-        this.tbTimerTj = setInterval(startScrollSw, speed);
-      }, delay);
-    },
-  },
-};
+  setTimeout((fn) => {
+    clearInterval(data.tbTimerTj);
+    data.tbTimerTj = setInterval(startScrollSw, speed);
+  }, delay);
+}
 </script>
 
 <style lang="scss" scoped>
@@ -1043,11 +849,9 @@ export default {
 
         .item {
           width: 100%;
-          height: 48%;
+          height: 100%;
           position: relative;
           // box-shadow: inset 0 0 10px  #1A3F81 ;
-          background-image: url("@/assets/img/smlk.png");
-          background-size: 100% 100%;
         }
         .item-title {
           width: 191px;

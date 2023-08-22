@@ -3,7 +3,7 @@ import { reactive, ref } from "vue";
 import axios from "axios";
 
 const data = reactive({
-  size: [2, 8],
+  size: [3, 7],
 });
 
 function size() {
@@ -14,7 +14,7 @@ function size() {
     });
 }
 
-function signal(action: string) {
+function signal(action: string): void {
   axios.post("/api/signal", { action: action }).then((resp) => {
     console.log("ok");
   });

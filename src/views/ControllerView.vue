@@ -27,7 +27,7 @@ function signal(action: string): void {
       <p>适合采摘的蘑菇尺寸</p>
 
       <div class="slider-demo-block">
-        <el-slider v-model="data.size" range show-stops :max="8" :min="2" />
+        <el-slider v-model="data.size" range show-stops :max="7" :min="3" />
       </div>
       <el-button type="primary" @click="size">提交</el-button>
 

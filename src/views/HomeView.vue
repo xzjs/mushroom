@@ -14,7 +14,7 @@
           </div>
         </div>
         <div class="content-top-item" style="">
-          <img :src="camera" style="width: 100%; height: 100%" alt="" />
+          <img :src="data.camera" style="width: 100%; height: 100%" alt="" />
         </div>
         <div
           class="content-top-item"
@@ -27,7 +27,7 @@
       </div>
       <div class="content">
         <div class="content-top-item">
-          <img src="/left.jpeg" style="width: 100%; height: 100%" alt="" />
+          <img :src="data.left" style="width: 100%; height: 100%" alt="" />
         </div>
         <div
           class="content-top-item jqr_content"
@@ -44,7 +44,11 @@
             <div>操作</div>
           </div>
           <div class="JTableBody noScrollBar" id="scrollContentTj">
-            <div class="list-item" v-for="(item, index) in data.jqrArr" :key="index">
+            <div
+              class="list-item"
+              v-for="(item, index) in data.jqrArr"
+              :key="index"
+            >
               <div>{{ index + 1 }}</div>
               <div>{{ item.jqrbh }}</div>
               <div>{{ item.cqbh }}</div>
@@ -55,7 +59,7 @@
           </div>
         </div>
         <div class="content-top-item">
-          <img src="/right.jpeg" style="width: 100%; height: 100%" alt="" />
+          <img :src="data.right" style="width: 100%; height: 100%" alt="" />
         </div>
       </div>
     </div>
@@ -67,10 +71,14 @@ import axios from "axios";
 import * as echarts from "echarts";
 import $ from "jquery";
 import { reactive, onMounted, computed } from "vue";
+import { useRouter, useRoute } from "vue-router";
 
+const route = useRoute();
 const data = reactive({
   statistics: { keys: [], values: [] },
   camera: "/api/camera",
+  left: "/left.png",
+  right: "/right.png",
   timer: undefined,
   nowTime: new Date(),
   latedata: "2020-1-9",
@@ -155,9 +163,15 @@ const data = reactive({
       gcbh: "02",
     },
   ],
+  echarts3Date: [],
 });
 
 onMounted(() => {
+  let timestamp = new Date().getTime();
+  for(let i=10;i>=0;i--){
+    let date =new Date(timestamp-1000*i*24*3600)
+    data.echarts3Date.push(date.getFullYear()+'-'+(date.getMonth()+1)+'-'+date.getDate());
+  }
   data.timer = setInterval(() => {
     data.nowTime = new Date().toLocaleString();
     getStatistics();
@@ -165,11 +179,20 @@ onMounted(() => {
   initDataEchartsMj();
 
   jsScrollTj();
-  // setInterval(() => {
-  //   this.getCamera();
-  // }, 100);
-  // this.getCamera();
+  var c = route.query.c ? route.query.c : 100;
+  var h = route.query.h ? route.query.h : 2000;
+  setInterval(() => {
+    getHot();
+  }, h);
+  setInterval(() => {
+    getCamera();
+  }, c);
 });
+
+function getHot() {
+  data.left = "/left.png?t=" + Date.now();
+  data.right = "/right.png?t=" + Date.now();
+}
 
 function getStatistics() {
   axios.get("/api/statistics").then((res) => {
@@ -178,7 +201,7 @@ function getStatistics() {
   });
 }
 function getCamera() {
-  data.camera = "/api/camera?" + Date.now();
+  data.camera = "/api/camera?t=" + Date.now();
 }
 function FormatTime() {
   //返回显示的日期时间格式
@@ -461,18 +484,7 @@ function initDataEchartsMj() {
           },
         },
         boundaryGap: false,
-        data: [
-          "2023-01-01",
-          "2023-01-02",
-          "2023-01-03",
-          "2023-01-04",
-          "2023-01-05",
-          "2023-01-06",
-          "2023-01-07",
-          "2023-01-08",
-          "2023-01-09",
-          "2023-01-10",
-        ],
+        data: data.echarts3Date,
       },
     ],
 
@@ -741,13 +753,11 @@ function jsScrollTj(rowHei = 36, speed = 2000, delay = 1000) {
     if (isStopSw) {
       console.log("暂停中");
     } else {
-      console.log(contSw.scrollTop, contSw.scrollHeight - contSw.offsetHeight);
       if (contSw.scrollTop + 10 >= contSw.scrollHeight - contSw.offsetHeight) {
         contSw.scrollTop = 0;
       } else {
         // cont.scrollTop = parseInt(cont.scrollTop) + rowHei;
         let buSw = parseInt(contSw.scrollTop) + rowHei + "px";
-        console.log("buSw", buSw);
         // document.getElementById('scrollContentTj').animate({scrollTop: buSw}, 200);
         $("#scrollContentTj").animate({ scrollTop: buSw }, 200);
       }
